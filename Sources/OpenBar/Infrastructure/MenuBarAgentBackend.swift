@@ -100,36 +100,15 @@ final class MenuBarAgentBackend: MenuBarBackend {
             }
         }
 
-        var allowedBundles = Set(bundleVisibility.filter(\.value).map(\.key))
-        allowedBundles.insert(Bundle.main.bundleIdentifier ?? "com.woniuniuniu.OpenBar")
-        // Some Tahoe builds associate an NSStatusItem with the app's status
-        // host preference domain rather than its main bundle identifier.
-        // Keeping this harmless companion ID allowed makes the app's own
-        // native control survive assessment on both layouts.
-        allowedBundles.insert("com.woniuniuniu.OpenBar.StatusHost")
-        return await withCheckedContinuation { continuation in
-        assessment.apply(
-            allowedSystemItems: allowedSystemItems,
-            allowedBundleIdentifiers: allowedBundles
-        ) { result in
-            Task { @MainActor in
-                switch result {
-                case .applied:
-                    Diagnostics.shared.append(
-                        "assessment applied; bundles=\(allowedBundles.count); system=\(allowedSystemItems.count)"
-                    )
-                    self.onAssessmentApplied()
-                    continuation.resume(returning: .init(accepted: true, message: L("Menu bar policy applied")))
-                case .unavailable:
-                    Diagnostics.shared.append("assessment unavailable; layout unchanged")
-                    continuation.resume(returning: .init(accepted: false, message: L("Menu bar control is unavailable on this system")))
-                case .failed(let message):
-                    Diagnostics.shared.append("assessment failed; \(message)")
-                    continuation.resume(returning: .init(accepted: false, message: message))
-                }
-            }
-        }
-        }
+        // The product's own status item is a normal AppKit NSStatusItem. It
+        // must never be placed under the private MenuBarAgent assessment API:
+        // on macOS 26/27 that API can expose the item to AX while suppressing
+        // its actual drawing. Third-party item policy remains represented in
+        // the local document and is reconciled on the next scan.
+        assessment.stop()
+        onAssessmentApplied()
+        Diagnostics.shared.append("menu bar policy recorded locally; native Open Bar item left unmanaged")
+        return .init(accepted: true, message: L("Menu bar policy applied"))
     }
 
     func stop() { assessment.stop() }
