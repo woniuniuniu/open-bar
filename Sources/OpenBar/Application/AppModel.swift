@@ -197,6 +197,9 @@ final class AppModel: ObservableObject {
         let selectedBackend = MenuBarBackendFactory.make(
             legacySections: status.legacySections,
             onAssessmentApplied: { [weak status] in
+                // Keep the original NSStatusItem. Recreating it after the
+                // MenuBarAgent assertion puts new items into its temporary
+                // x=-1 assessment slot on macOS 27.
                 status?.reassertNativeItem()
             }
         )

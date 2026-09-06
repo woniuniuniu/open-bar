@@ -14,7 +14,7 @@ final class StatusBarController: NSObject {
 
     let legacySections: LegacySectionController?
 
-    private let boundaryItem: NSStatusItem
+    private let boundaryItem: NSStatusItem?
     private var statusItem: NSStatusItem
     private let model: AppModel
     private let onOpen: () -> Void
@@ -29,11 +29,13 @@ final class StatusBarController: NSObject {
         self.onQuit = onQuit
         legacySections = ProcessInfo.processInfo.operatingSystemVersion.majorVersion < 27
             ? LegacySectionController() : nil
-        boundaryItem = NSStatusBar.system.statusItem(withLength: 0)
+        boundaryItem = ProcessInfo.processInfo.operatingSystemVersion.majorVersion < 27
+            ? NSStatusBar.system.statusItem(withLength: 0)
+            : nil
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
 
-        boundaryItem.autosaveName = AutosaveName.boundary
+        boundaryItem?.autosaveName = AutosaveName.boundary
         statusItem.autosaveName = AutosaveName.toggle
         panelController = StatusBarPanelController(model: model) { [weak self] visible in
             self?.panelVisible = visible
@@ -68,17 +70,15 @@ final class StatusBarController: NSObject {
     func update(expanded: Bool) {
         self.expanded = expanded
         updateIcon()
-        let section = model.store.section(for: Self.toggleID)
-        statusItem.isVisible = section == .shown || (section == .hidden && expanded)
-        boundaryItem.length = 0
+        // OPEN BAR's own control is the escape hatch for every other section.
+        // It must remain visible even when a user moves its record in the
+        // workspace; visibility policies apply to managed third-party items.
+        statusItem.isVisible = true
+        boundaryItem?.length = 0
         if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27 {
             // Keep the hidden boundary as a one-pixel, mouse-transparent
             // anchor. Leaving AppKit's default boundary window untouched can
             // make MenuBarAgent place the adjacent native item at AX x=-1.
-            if let window = boundaryItem.button?.window {
-                window.setContentSize(NSSize(width: 1, height: window.frame.height))
-                window.ignoresMouseEvents = true
-            }
             statusItem.button?.contentTintColor = nil
             statusItem.button?.toolTip = expanded ? L("Close Quick Bar") : L("Open Quick Bar")
         }
@@ -92,11 +92,24 @@ final class StatusBarController: NSObject {
     /// OPEN BAR status item is not left in the off-screen overflow slot.
     func reassertNativeItem() {
         update(expanded: model.isExpanded)
+        Diagnostics.shared.append("native status item asserted; frame=\(statusItemFrame() ?? .zero)")
+    }
+
+    /// MenuBarAgent can retain the first NSStatusItem in its pre-assessment
+    /// slot. Recreating only this one item after the assertion is active makes
+    /// AppKit register it through the normal visible-status-item path.
+    func rebuildNativeItem() {
+        NSStatusBar.system.removeStatusItem(statusItem)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.autosaveName = AutosaveName.toggle
+        configureItem()
+        update(expanded: model.isExpanded)
+        Diagnostics.shared.append("native status item rebuilt; frame=\(statusItemFrame() ?? .zero)")
     }
 
     func stop() {
         panelController.hide()
-        NSStatusBar.system.removeStatusItem(boundaryItem)
+        if let boundaryItem { NSStatusBar.system.removeStatusItem(boundaryItem) }
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
@@ -119,8 +132,8 @@ final class StatusBarController: NSObject {
     }
 
     private func configureBoundary() {
+        guard let boundaryItem, let button = boundaryItem.button else { return }
         boundaryItem.length = 0
-        guard let button = boundaryItem.button else { return }
         button.image = nil
         button.isEnabled = false
         button.alphaValue = 0
@@ -164,7 +177,7 @@ final class StatusBarController: NSObject {
     private func updateIcon() {
         let configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
         statusItem.button?.image = NSImage(
-            systemSymbolName: panelVisible ? "arrow.up" : "arrow.down",
+            systemSymbolName: panelVisible ? "switch.2" : "switch.2",
             accessibilityDescription: L("Open Quick Bar")
         )?.withSymbolConfiguration(configuration)
         statusItem.button?.image?.isTemplate = true
