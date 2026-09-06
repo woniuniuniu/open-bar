@@ -121,7 +121,7 @@ final class StatusBarController: NSObject {
         guard let button = statusItem.button else { return }
         button.imagePosition = .imageLeading
         button.imageHugsTitle = true
-        button.title = "若栏"
+        button.title = ""
         button.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         button.appearsDisabled = false
         button.alphaValue = 1
@@ -169,7 +169,7 @@ final class StatusBarController: NSObject {
             button.autoresizingMask = [.width, .height]
             button.isBordered = false
             button.bezelStyle = .texturedRounded
-            button.title = "若栏 􀆾"
+            button.title = "􀆾"
             button.font = NSFont.systemFont(ofSize: 12, weight: .medium)
             button.contentTintColor = .labelColor
             button.target = self
