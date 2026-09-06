@@ -245,7 +245,6 @@ private struct SidebarFooter: View {
                         .toggleStyle(.switch)
                         .tint(OpenBarTheme.accent)
                 }
-                .disabled(!model.canManage)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 9)
 

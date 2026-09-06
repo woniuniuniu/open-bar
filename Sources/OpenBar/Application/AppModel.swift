@@ -376,10 +376,6 @@ final class AppModel: ObservableObject {
     }
 
     func toggleExpanded() {
-        guard canManage else {
-            lastOperationMessage = L("Accessibility permission is required")
-            return
-        }
         store.setExpanded(!isExpanded)
         backend?.setExpanded(isExpanded)
         statusBar?.update(expanded: isExpanded)
