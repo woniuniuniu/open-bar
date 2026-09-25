@@ -203,11 +203,14 @@ enum AIPlacementClient {
 
     private struct DeepSeekRequest: Encodable {
         struct ResponseFormat: Encodable { let type: String }
+        struct Thinking: Encodable { let type: String }
         let model: String
         let messages: [DeepSeekMessage]
         let response_format: ResponseFormat
         let temperature: Double
         let max_tokens: Int
+        // DeepSeek V4 models think by default; placement needs fast JSON only.
+        let thinking: Thinking
     }
 
     private struct DeepSeekCompletion: Decodable {
@@ -261,14 +264,15 @@ enum AIPlacementClient {
         guard let url = URL(string: endpoint), url.scheme == "https", url.host != nil else { throw AIPlacementError.invalidEndpoint }
 
         let requestBody = DeepSeekRequest(
-            model: model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "deepseek-chat" : model,
+            model: model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "deepseek-flash" : model,
             messages: [
                 .init(role: "system", content: "Return one valid compact JSON object only. Follow the requested schema exactly."),
                 .init(role: "user", content: prompt),
             ],
             response_format: .init(type: "json_object"),
             temperature: 0.2,
-            max_tokens: 2600
+            max_tokens: 2600,
+            thinking: .init(type: "disabled")
         )
 
         var request = URLRequest(url: url)

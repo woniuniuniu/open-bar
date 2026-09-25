@@ -74,9 +74,18 @@ final class LegacySectionController {
         setExpanded(false)
     }
 
+    private var expanded = false
+
+    /// While OPEN BAR is switched off, both boundaries stay collapsed so every
+    /// item is visible, whatever the expansion state.
+    var isPaused = false {
+        didSet { if isPaused != oldValue { setExpanded(expanded) } }
+    }
+
     func setExpanded(_ expanded: Bool) {
-        hiddenBoundary.setWide(!expanded)
-        alwaysBoundary.setWide(expanded)
+        self.expanded = expanded
+        hiddenBoundary.setWide(!expanded && !isPaused)
+        alwaysBoundary.setWide(expanded && !isPaused)
     }
 
     func prepareForMovement() {

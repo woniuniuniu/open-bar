@@ -1,3 +1,11 @@
+# 1.1.7 - 2026-09-26
+
+- New: a big power switch in the sidebar. On: icons are tucked away. Off: every icon shows.
+- Fixed: apps you quit no longer stay listed in the sections.
+- Fixed: the Quick Bar now closes when you click ⌄ again.
+- DeepSeek now uses its new default model, deepseek-flash.
+- Authors are back in Settings, with links to their Xiaohongshu pages.
+
 # 1.1.6 - 2026-09-25
 
 - Fixed: OPEN BAR did nothing on macOS 27. Hiding and showing icons works again.

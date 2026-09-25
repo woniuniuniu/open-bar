@@ -10,8 +10,8 @@
 "Hidden" = "隐藏";
 "Always Hidden" = "始终隐藏";
 "Stays in the menu bar" = "常驻菜单栏";
-"Appears when OPEN BAR is expanded" = "展开若栏时显示";
-"Remains out of sight when expanded" = "展开时仍保持隐藏";
+"Appears when OPEN BAR is expanded" = "点菜单栏上的 ⌄ 查看";
+"Remains out of sight when expanded" = "快捷栏里也不显示";
 "Ready" = "已就绪";
 "Permission Needed" = "需要权限";
 "Guardian active" = "布局守护中";
@@ -221,3 +221,15 @@
 "Not Now" = "以后再说";
 "Couldn't move OPEN BAR" = "无法移动若栏";
 "Drag OPEN BAR into the Applications folder in Finder, then open it again. (%@)" = "请在访达中把若栏拖到“应用程序”文件夹，然后重新打开。（%@）";
+"Authors" = "作者";
+"Xiaohongshu" = "小红书";
+"OPEN BAR is on" = "若栏已开启";
+"OPEN BAR is off" = "若栏已关闭";
+"Tucking icons away" = "正在帮你收起图标";
+"All icons are showing" = "所有图标都会显示";
+"OPEN BAR master switch" = "若栏总开关";
+"Click to turn off" = "点击关闭";
+"Click to turn on" = "点击开启";
+"Turn Off OPEN BAR" = "关闭若栏";
+"Turn On OPEN BAR" = "开启若栏";
+"%d items in your menu bar" = "菜单栏上现有 %d 项";

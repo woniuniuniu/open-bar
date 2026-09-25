@@ -54,9 +54,10 @@ final class AppModel: ObservableObject {
     }
 
     var isExpanded: Bool { store.document.preferences.hiddenSectionExpanded }
+    var isEnabled: Bool { store.document.preferences.isEnabled }
 
     var managedItems: [ManagedMenuBarItem] {
-        filteredItems(allManagedItems, query: searchText)
+        filteredItems(liveManagedItems, query: searchText)
     }
 
     /// Number of items in the latest live inventory. Historical policies are
@@ -65,14 +66,12 @@ final class AppModel: ObservableObject {
         liveItems.count
     }
 
-    var rememberedItemCount: Int { allManagedItems.count }
-
     var displayedItems: [ManagedMenuBarItem] {
         let source: [ManagedMenuBarItem]
         if let sectionFilter {
             source = items(in: sectionFilter)
         } else {
-            source = allManagedItems
+            source = liveManagedItems
         }
         return filteredItems(source, query: searchText)
     }
@@ -85,7 +84,7 @@ final class AppModel: ObservableObject {
     }
 
     var quickBarItems: [ManagedMenuBarItem] {
-        filteredItems(allManagedItems, query: quickBarSearchText)
+        filteredItems(liveManagedItems, query: quickBarSearchText)
     }
 
     private var allManagedItems: [ManagedMenuBarItem] {
@@ -141,8 +140,15 @@ final class AppModel: ObservableObject {
         return live + offline
     }
 
+    /// Only items that are in the menu bar right now. Records of apps that
+    /// have quit stay saved, so an app returns to its section when it comes
+    /// back, but they are not shown as if they were still there.
+    private var liveManagedItems: [ManagedMenuBarItem] {
+        allManagedItems.filter(\.isRunning)
+    }
+
     func items(in section: ItemSection) -> [ManagedMenuBarItem] {
-        allManagedItems.filter {
+        liveManagedItems.filter {
             store.section(for: $0.id) == section
 
         }
@@ -183,6 +189,10 @@ final class AppModel: ObservableObject {
     func start(openWindow: @escaping () -> Void) {
         self.openWindow = openWindow
         hasAccessibilityPermission = AccessibilityInventory.isTrusted()
+        // Hidden items are reached through the Quick Bar. A saved "expanded"
+        // state from the old toggle has no visible control any more, so it
+        // must not keep the Hidden section on screen.
+        if isExpanded { store.setExpanded(false) }
         // The status item must be created under the final activation policy.
         // Creating it as an accessory app and switching to regular afterward
         // leaves macOS 27's MenuBarAgent with an off-screen AX slot (x=-1).
@@ -375,16 +385,15 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func toggleExpanded() {
-        store.setExpanded(!isExpanded)
-        backend?.setExpanded(isExpanded)
+    func setEnabled(_ enabled: Bool) {
+        guard enabled != isEnabled else { return }
+        store.setEnabled(enabled)
+        if isExpanded { store.setExpanded(false) }
         statusBar?.update(expanded: isExpanded)
         apply(reason: .expansion)
-        addActivity(.success, isExpanded ? L("Hidden items expanded") : L("Hidden items collapsed"))
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-            self?.refresh(reconcile: false)
-        }
+        addActivity(.success, enabled ? L("OPEN BAR is on") : L("OPEN BAR is off"))
     }
+
 
     func requestAccessibilityPermission() {
         _ = AccessibilityInventory.isTrusted(prompt: true)

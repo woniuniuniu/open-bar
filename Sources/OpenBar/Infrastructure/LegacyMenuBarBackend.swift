@@ -98,6 +98,10 @@ final class LegacyMenuBarBackend: MenuBarBackend {
         liveItems: [LiveMenuBarItem],
         reason: ApplyReason
     ) async -> BackendApplyResult {
+        sections.isPaused = !document.preferences.isEnabled
+        guard document.preferences.isEnabled else {
+            return .init(accepted: true, message: L("OPEN BAR is off"))
+        }
         let targets: [LiveMenuBarItem]
         switch reason {
         case .user(let itemID):

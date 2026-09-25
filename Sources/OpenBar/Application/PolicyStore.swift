@@ -215,6 +215,11 @@ final class PolicyStore: ObservableObject {
         persist()
     }
 
+    func setEnabled(_ enabled: Bool) {
+        document.preferences.isEnabled = enabled
+        persist()
+    }
+
     func setExpanded(_ expanded: Bool) {
         document.preferences.hiddenSectionExpanded = expanded
         persist()
@@ -227,7 +232,7 @@ final class PolicyStore: ObservableObject {
 
     func setAIModel(_ model: String) {
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
-        document.preferences.aiModel = trimmed.isEmpty ? "deepseek-chat" : trimmed
+        document.preferences.aiModel = trimmed.isEmpty ? "deepseek-flash" : trimmed
         persist()
     }
 

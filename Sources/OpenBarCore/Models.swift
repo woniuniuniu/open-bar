@@ -96,6 +96,8 @@ public struct OpenBarPreferences: Codable, Equatable, Sendable {
     public var showInDock: Bool
     public var guardianEnabled: Bool
     public var hiddenSectionExpanded: Bool
+    /// The master switch. When off, OPEN BAR hides nothing.
+    public var isEnabled: Bool
     public var aiProvider: AIProvider
     public var aiModel: String
     public var aiBaseURL: String
@@ -107,8 +109,9 @@ public struct OpenBarPreferences: Codable, Equatable, Sendable {
         showInDock: Bool = false,
         guardianEnabled: Bool = true,
         hiddenSectionExpanded: Bool = false,
+        isEnabled: Bool = true,
         aiProvider: AIProvider = .deepSeek,
-        aiModel: String = "deepseek-chat",
+        aiModel: String = "deepseek-flash",
         aiBaseURL: String = "https://api.deepseek.com"
     ) {
         self.language = language
@@ -117,13 +120,14 @@ public struct OpenBarPreferences: Codable, Equatable, Sendable {
         self.showInDock = showInDock
         self.guardianEnabled = guardianEnabled
         self.hiddenSectionExpanded = hiddenSectionExpanded
+        self.isEnabled = isEnabled
         self.aiProvider = aiProvider
         self.aiModel = aiModel
         self.aiBaseURL = aiBaseURL
     }
 
     private enum CodingKeys: String, CodingKey {
-        case language, appearance, launchAtLogin, showInDock, guardianEnabled, hiddenSectionExpanded
+        case language, appearance, launchAtLogin, showInDock, guardianEnabled, hiddenSectionExpanded, isEnabled
         case aiProvider, aiModel, aiBaseURL
     }
 
@@ -136,8 +140,9 @@ public struct OpenBarPreferences: Codable, Equatable, Sendable {
             showInDock: try container.decodeIfPresent(Bool.self, forKey: .showInDock) ?? false,
             guardianEnabled: try container.decodeIfPresent(Bool.self, forKey: .guardianEnabled) ?? true,
             hiddenSectionExpanded: try container.decodeIfPresent(Bool.self, forKey: .hiddenSectionExpanded) ?? false,
+            isEnabled: try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true,
             aiProvider: try container.decodeIfPresent(AIProvider.self, forKey: .aiProvider) ?? .deepSeek,
-            aiModel: try container.decodeIfPresent(String.self, forKey: .aiModel) ?? "deepseek-chat",
+            aiModel: try container.decodeIfPresent(String.self, forKey: .aiModel) ?? "deepseek-flash",
             aiBaseURL: try container.decodeIfPresent(String.self, forKey: .aiBaseURL) ?? "https://api.deepseek.com"
         )
     }
@@ -177,8 +182,10 @@ public struct PolicyDocument: Codable, Equatable, Sendable {
         for id in policies.keys {
             policies[id]?.guardsAgainstDrift = true
         }
-        if preferences.aiModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            preferences.aiModel = "deepseek-chat"
+        // DeepSeek retired deepseek-chat; deepseek-flash serves V4.1 Flash.
+        let savedModel = preferences.aiModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if savedModel.isEmpty || savedModel == "deepseek-chat" {
+            preferences.aiModel = "deepseek-flash"
         }
         if preferences.aiBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             preferences.aiBaseURL = "https://api.deepseek.com"

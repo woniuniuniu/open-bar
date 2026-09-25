@@ -10,8 +10,8 @@
 "Hidden" = "Hidden";
 "Always Hidden" = "Always Hidden";
 "Stays in the menu bar" = "Stays in the menu bar";
-"Appears when OPEN BAR is expanded" = "Appears when OPEN BAR is expanded";
-"Remains out of sight when expanded" = "Remains out of sight when expanded";
+"Appears when OPEN BAR is expanded" = "Click ⌄ in the menu bar to see them";
+"Remains out of sight when expanded" = "Not in the Quick Bar either";
 "Ready" = "Ready";
 "Permission Needed" = "Permission Needed";
 "Guardian active" = "Guardian active";
@@ -221,3 +221,15 @@
 "Not Now" = "Not Now";
 "Couldn't move OPEN BAR" = "Couldn't move OPEN BAR";
 "Drag OPEN BAR into the Applications folder in Finder, then open it again. (%@)" = "Drag OPEN BAR into the Applications folder in Finder, then open it again. (%@)";
+"Authors" = "Authors";
+"Xiaohongshu" = "Xiaohongshu (RED)";
+"OPEN BAR is on" = "OPEN BAR is on";
+"OPEN BAR is off" = "OPEN BAR is off";
+"Tucking icons away" = "Tucking icons away";
+"All icons are showing" = "All icons are showing";
+"OPEN BAR master switch" = "OPEN BAR master switch";
+"Click to turn off" = "Click to turn off";
+"Click to turn on" = "Click to turn on";
+"Turn Off OPEN BAR" = "Turn Off OPEN BAR";
+"Turn On OPEN BAR" = "Turn On OPEN BAR";
+"%d items in your menu bar" = "%d items in your menu bar";

@@ -184,7 +184,11 @@ private struct Sidebar: View {
             .padding(.horizontal, 12)
             .padding(.top, 16)
 
-            Spacer()
+            Spacer(minLength: 12)
+
+            PowerSwitchView()
+
+            Spacer(minLength: 12)
 
             SidebarFooter()
                 .padding(.horizontal, 16)
@@ -196,16 +200,6 @@ private struct Sidebar: View {
 
 private struct SidebarFooter: View {
     @EnvironmentObject private var model: AppModel
-
-    private var showHiddenBinding: Binding<Bool> {
-        Binding(
-            get: { model.isExpanded },
-            set: { value in
-                guard value != model.isExpanded else { return }
-                model.toggleExpanded()
-            }
-        )
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -227,29 +221,6 @@ private struct SidebarFooter: View {
             .padding(.horizontal, 10)
 
             VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    Image(systemName: model.isExpanded ? "eye" : "eye.slash")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(OpenBarTheme.label)
-                        .frame(width: 22)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(L("Show hidden items"))
-                            .font(.system(size: 12, weight: .medium))
-                        Text(L("Reveal them in the quick bar"))
-                            .font(.system(size: 10))
-                            .foregroundStyle(OpenBarTheme.muted)
-                    }
-                    Spacer(minLength: 0)
-                    Toggle("", isOn: showHiddenBinding)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .tint(OpenBarTheme.accent)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 9)
-
-                Hairline()
-
                 Button {
                     model.rescan()
                 } label: {
@@ -534,6 +505,8 @@ private struct SettingsView: View {
                             dataBlock
                         }
                     }
+
+                    authorsBlock
                 }
                 .padding(.horizontal, 30)
                 .padding(.vertical, 24)
@@ -643,6 +616,14 @@ private struct SettingsView: View {
         }
     }
 
+    private var authorsBlock: some View {
+        settingsBlock(L("Authors")) {
+            AuthorRow(name: "蜗牛的科技笔记", url: "https://xhslink.cn/o/6OddDrrLP8h")
+            Hairline()
+            AuthorRow(name: "李山迎 Joshua", url: "https://xhslink.cn/o/87IIDxzsE72")
+        }
+    }
+
     private func settingsBlock<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
@@ -682,7 +663,7 @@ private struct AISettingsView: View {
                 .frame(height: 30)
                 .background(OpenBarTheme.control, in: RoundedRectangle(cornerRadius: OpenBarTheme.corner, style: .continuous))
             }
-            labeledField(L("Model"), text: $state.modelName, placeholder: "deepseek-chat")
+            labeledField(L("Model"), text: $state.modelName, placeholder: "deepseek-flash")
             labeledField(L("Base URL"), text: $state.baseURL, placeholder: "https://api.deepseek.com")
             HStack {
                 Text(state.savedMessage ?? L("Your key stays in macOS Keychain and is sent only to your provider."))
@@ -737,7 +718,7 @@ private struct AISettingsView: View {
 
 private final class AISettingsState: ObservableObject {
     @Published var apiKey = ""
-    @Published var modelName = "deepseek-chat"
+    @Published var modelName = "deepseek-flash"
     @Published var baseURL = "https://api.deepseek.com"
     @Published var savedMessage: String?
 }
@@ -796,6 +777,34 @@ private struct SettingsChip: View {
         }
         .buttonStyle(.plain)
         .onHover { hover.isHovered = $0 }
+    }
+}
+
+private struct AuthorRow: View {
+    let name: String
+    let url: String
+    @StateObject private var hover = OpenBarHoverState()
+
+    var body: some View {
+        Button {
+            if let link = URL(string: url) { NSWorkspace.shared.open(link) }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name).font(.system(size: 13))
+                    Text(L("Xiaohongshu")).font(.system(size: 12)).foregroundStyle(OpenBarTheme.muted)
+                }
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(hover.isHovered ? OpenBarTheme.accent : OpenBarTheme.muted)
+            }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hover.isHovered = $0 }
+        .help(url)
     }
 }
 

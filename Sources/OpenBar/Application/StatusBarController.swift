@@ -22,6 +22,7 @@ final class StatusBarController: NSObject {
     private var panelController: StatusBarPanelController!
     private var expanded = false
     private var panelVisible = false
+    private var panelHiddenAt = Date.distantPast
 
     init(model: AppModel, onOpen: @escaping () -> Void, onQuit: @escaping () -> Void) {
         self.model = model
@@ -39,6 +40,7 @@ final class StatusBarController: NSObject {
         statusItem.autosaveName = AutosaveName.toggle
         panelController = StatusBarPanelController(model: model) { [weak self] visible in
             self?.panelVisible = visible
+            if !visible { self?.panelHiddenAt = Date() }
             self?.updateIcon()
         }
         // Keep the boundary as a normal zero-width status item on every
@@ -148,6 +150,9 @@ final class StatusBarController: NSObject {
     @objc private func clicked() {
         if NSApp.currentEvent?.type == .rightMouseUp { showMenu() }
         else if panelVisible { panelController.hide() }
+        // Pressing ⌄ while the Quick Bar is open closes it on mouse-down (it
+        // counts as a click outside). Don't reopen it on the mouse-up.
+        else if Date().timeIntervalSince(panelHiddenAt) < 0.4 { return }
         else {
             panelController.show(anchor: statusItemFrame())
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
@@ -159,8 +164,8 @@ final class StatusBarController: NSObject {
     private func showMenu() {
         panelController.hide()
         let menu = NSMenu(title: "OPEN BAR")
-        addItem(to: menu, title: expanded ? L("Collapse Hidden Items") : L("Expand Hidden Items"),
-                symbol: expanded ? "eye.slash" : "eye", action: #selector(toggleExpanded))
+        addItem(to: menu, title: model.isEnabled ? L("Turn Off OPEN BAR") : L("Turn On OPEN BAR"),
+                symbol: "power", action: #selector(toggleEnabled))
         menu.addItem(.separator())
         addItem(to: menu, title: L("AI One-click Placement"), symbol: "sparkles", action: #selector(prepareAIPlacement))
         addItem(to: menu, title: L("Open OPEN BAR"), symbol: "slider.horizontal.3", action: #selector(open))
@@ -201,7 +206,7 @@ final class StatusBarController: NSObject {
         return CGRect(x: screen.maxX - 220, y: screen.maxY - 24, width: 24, height: 24)
     }
 
-    @objc private func toggleExpanded() { model.toggleExpanded() }
+    @objc private func toggleEnabled() { model.setEnabled(!model.isEnabled) }
     @objc private func prepareAIPlacement() { model.prepareAIPlacement() }
     @objc private func open() { onOpen() }
     @objc private func refresh() { model.refresh(reconcile: false) }

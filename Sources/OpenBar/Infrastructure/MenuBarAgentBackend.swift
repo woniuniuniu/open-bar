@@ -53,6 +53,12 @@ final class MenuBarAgentBackend: MenuBarBackend {
         liveItems: [LiveMenuBarItem],
         reason: ApplyReason
     ) async -> BackendApplyResult {
+        guard document.preferences.isEnabled else {
+            assessment.stop()
+            onAssessmentApplied()
+            Diagnostics.shared.append("assessment released; OPEN BAR is off")
+            return .init(accepted: true, message: L("OPEN BAR is off"))
+        }
         guard !document.knownItems.isEmpty || !liveItems.isEmpty else {
             assessment.stop()
             return .init(accepted: false, message: L("Skipped an empty menu bar inventory"))

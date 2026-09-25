@@ -54,7 +54,7 @@ struct MenuBarWorkspaceView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(L("Your menu bar"))
                     .font(.system(size: 18, weight: .semibold))
-                Text(LF("%d current items · %d remembered", model.currentItemCount, model.rememberedItemCount))
+                Text(LF("%d items in your menu bar", model.currentItemCount))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(OpenBarTheme.muted)
             }
@@ -246,8 +246,7 @@ private struct LaneIcon: View {
                         .disabled(target == section || !model.canManage)
                 }
             }
-            .opacity(item.isRunning ? 1 : 0.4)
-            .help(item.localizedDisplayName + (item.isRunning ? "" : " · " + L("Not detected in the latest scan")))
+            .help(item.localizedDisplayName)
             .zIndex(hover.isHovered ? 10 : 0)
     }
 
