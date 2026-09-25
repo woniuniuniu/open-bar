@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         terminateDuplicateInstances()
         AppModel.shared.start { [weak self] in self?.showWindow() }
         showWindow()
+        DispatchQueue.main.async { ApplicationsFolderMover.offerMoveIfNeeded() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

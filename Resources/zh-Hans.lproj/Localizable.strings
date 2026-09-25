@@ -213,3 +213,11 @@
 "Menu bar control is unavailable on this system" = "当前系统暂不支持菜单栏控制";
 
 "No hidden items available" = "暂无可用的隐藏项目";
+
+"Move OPEN BAR to the Applications folder to hide items" = "请把若栏移到“应用程序”文件夹，才能隐藏菜单栏项目";
+"Move OPEN BAR to the Applications folder?" = "要把若栏移到“应用程序”文件夹吗？";
+"On macOS 27, OPEN BAR can hide menu bar items only when it runs from the Applications folder." = "在 macOS 27 上，若栏只有从“应用程序”文件夹运行时才能隐藏菜单栏项目。";
+"Move to Applications" = "移到“应用程序”";
+"Not Now" = "以后再说";
+"Couldn't move OPEN BAR" = "无法移动若栏";
+"Drag OPEN BAR into the Applications folder in Finder, then open it again. (%@)" = "请在访达中把若栏拖到“应用程序”文件夹，然后重新打开。（%@）";

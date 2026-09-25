@@ -2,8 +2,10 @@
 set -euo pipefail
 
 ROOT="${0:A:h}"
-ARCHIVE="$ROOT/build/OPEN-BAR-1.1.5.zip"
-INSTALL_ROOT="${OPEN_BAR_INSTALL_DIR:-$HOME/Applications}"
+ARCHIVE="$ROOT/build/OPEN-BAR-1.1.6.zip"
+# macOS 27's MenuBarAgent only attributes status items to apps in
+# /Applications; installing elsewhere makes hiding swallow OPEN BAR's own control.
+INSTALL_ROOT="${OPEN_BAR_INSTALL_DIR:-/Applications}"
 DESTINATION="$INSTALL_ROOT/OPEN BAR.app"
 STAGE="$(mktemp -d /tmp/OpenBar-install.XXXXXX)"
 trap 'rm -rf "$STAGE"' EXIT
@@ -23,6 +25,7 @@ pkill -x OpenNotch 2>/dev/null || true
 for OLD_APP in \
     "$DESTINATION" \
     "/Applications/OPEN BAR.app" \
+    "$HOME/Applications/OPEN BAR.app" \
     "$HOME/Applications/Open Notch.app" \
     "/Applications/Open Notch.app"; do
     if [[ -e "$OLD_APP" ]]; then

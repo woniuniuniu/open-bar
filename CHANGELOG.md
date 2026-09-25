@@ -1,3 +1,12 @@
+# 1.1.6 - 2026-09-25
+
+- Restore menu bar hiding on macOS 27. Since 1.1.3 the macOS 27 backend only recorded policies and never hid anything, so the sections, the Show Hidden Items switch and AI placement had no effect.
+- Root cause: macOS 27's MenuBarAgent resolves a status item's owner through LaunchServices and succeeds only for apps in /Applications. From ~/Applications or any other folder, OPEN BAR's own item had no owner, so every hiding assertion also hid OPEN BAR's control.
+- Skip hiding (and explain why) when OPEN BAR runs outside /Applications, and offer to move it there on launch.
+- Keep newly launched apps visible: the allow list now starts from every running app and removes only the apps the user hid.
+- Remove the fallback menu bar panel, which could be left floating in the middle of the screen.
+- install-local.sh now installs to /Applications and removes the old ~/Applications copy.
+
 # 1.1.1 - 2026-09-06
 
 - Present the combined system control as Menu Bar on macOS 27, retaining its double-toggle symbol.

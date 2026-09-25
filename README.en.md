@@ -73,7 +73,7 @@ Choose your language and appearance, then decide whether to launch at login. Clo
 **For Apple silicon Macs running macOS 14 or later.** The current download does not include an Intel build.
 
 1. Visit the [latest release](https://github.com/woniuniuniu/open-bar/releases/latest) and download `OPEN-BAR-version.zip`.
-2. Unzip it, move **OPEN BAR.app** to Applications, and open it.
+2. Unzip it, move **OPEN BAR.app** to the Applications folder (`/Applications`), and open it. On macOS 27, OPEN BAR can hide menu bar items only when it runs from there; from any other location it offers to move itself.
 3. When prompted, allow OPEN BAR under **System Settings → Privacy & Security → Accessibility** so it can identify and manage menu bar items.
 4. Return to OPEN BAR and start arranging.
 

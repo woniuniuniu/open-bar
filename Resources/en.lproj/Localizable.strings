@@ -213,3 +213,11 @@
 "Menu bar control is unavailable on this system" = "Menu bar control is unavailable on this system";
 
 "No hidden items available" = "No hidden items available";
+
+"Move OPEN BAR to the Applications folder to hide items" = "Move OPEN BAR to the Applications folder to hide items";
+"Move OPEN BAR to the Applications folder?" = "Move OPEN BAR to the Applications folder?";
+"On macOS 27, OPEN BAR can hide menu bar items only when it runs from the Applications folder." = "On macOS 27, OPEN BAR can hide menu bar items only when it runs from the Applications folder.";
+"Move to Applications" = "Move to Applications";
+"Not Now" = "Not Now";
+"Couldn't move OPEN BAR" = "Couldn't move OPEN BAR";
+"Drag OPEN BAR into the Applications folder in Finder, then open it again. (%@)" = "Drag OPEN BAR into the Applications folder in Finder, then open it again. (%@)";

@@ -20,7 +20,6 @@ final class StatusBarController: NSObject {
     private let onOpen: () -> Void
     private let onQuit: () -> Void
     private var panelController: StatusBarPanelController!
-    private var visibleFallback: NSPanel?
     private var expanded = false
     private var panelVisible = false
 
@@ -48,7 +47,6 @@ final class StatusBarController: NSObject {
         // leave the next item in an off-screen AX slot (x=-1).
         configureBoundary()
         configureItem()
-        installVisibilityFallbackIfNeeded()
     }
 
     var toggleMenuBarItem: LiveMenuBarItem? {
@@ -111,8 +109,6 @@ final class StatusBarController: NSObject {
 
     func stop() {
         panelController.hide()
-        visibleFallback?.orderOut(nil)
-        visibleFallback = nil
         if let boundaryItem { NSStatusBar.system.removeStatusItem(boundaryItem) }
         NSStatusBar.system.removeStatusItem(statusItem)
     }
@@ -138,55 +134,6 @@ final class StatusBarController: NSObject {
                 "native status item; visible=\(self.statusItem.isVisible); length=\(self.statusItem.length); bounds=\(self.statusItem.button?.bounds ?? .zero)"
             )
         }
-    }
-
-    /// Tahoe can expose an NSStatusItem through AX while failing to paint it
-    /// in the menu bar after an assessment change. Keep a transparent,
-    /// menu-bar-level button as a visual fallback so the product always has a
-    /// real clickable control in the top bar.
-    private func installVisibilityFallbackIfNeeded() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self, self.visibleFallback == nil else { return }
-            guard let screen = NSScreen.main else { return }
-            let frame = self.statusItem.button?.window?.frame ?? .zero
-            let menuBarTop = screen.frame.maxY
-            let nativeVisible = frame.width > 0 && frame.height > 0 && frame.minY >= menuBarTop - 40
-            guard !nativeVisible else { return }
-
-            let panel = NSPanel(
-                contentRect: NSRect(x: screen.frame.maxX - 220, y: menuBarTop - 28, width: 68, height: 24),
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
-            panel.level = .statusBar
-            panel.isOpaque = false
-            panel.backgroundColor = .clear
-            panel.hasShadow = false
-            panel.hidesOnDeactivate = false
-            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            let button = NSButton(frame: panel.contentView?.bounds ?? .zero)
-            button.autoresizingMask = [.width, .height]
-            button.isBordered = false
-            button.bezelStyle = .texturedRounded
-            button.title = "􀆾"
-            button.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-            button.contentTintColor = .labelColor
-            button.target = self
-            button.action = #selector(self.fallbackClicked)
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            panel.contentView = NSView(frame: panel.contentRect(forFrameRect: panel.frame))
-            panel.contentView?.addSubview(button)
-            panel.orderFrontRegardless()
-            self.visibleFallback = panel
-            Diagnostics.shared.append("installed visible menu bar fallback; frame=\(panel.frame)")
-        }
-    }
-
-    @objc private func fallbackClicked() {
-        if NSApp.currentEvent?.type == .rightMouseUp { showMenu() }
-        else if panelVisible { panelController.hide() }
-        else { panelController.show(anchor: visibleFallback?.frame ?? estimatedStatusItemFrame) }
     }
 
     private func configureBoundary() {

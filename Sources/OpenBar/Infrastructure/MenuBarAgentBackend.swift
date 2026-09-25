@@ -100,18 +100,65 @@ final class MenuBarAgentBackend: MenuBarBackend {
             }
         }
 
-        // The product's own status item is a normal AppKit NSStatusItem. It
-        // must never be placed under the private MenuBarAgent assessment API:
-        // on macOS 26/27 that API can expose the item to AX while suppressing
-        // its actual drawing. Third-party item policy remains represented in
-        // the local document and is reconciled on the next scan.
-        assessment.stop()
-        onAssessmentApplied()
-        Diagnostics.shared.append("menu bar policy recorded locally; native Open Bar item left unmanaged")
-        return .init(accepted: true, message: L("Menu bar policy applied"))
+        let hiddenBundles = Set(bundleVisibility.filter { !$0.value }.map(\.key))
+        guard !hiddenBundles.isEmpty || allowedSystemItems != Set(0...8) else {
+            assessment.stop()
+            onAssessmentApplied()
+            Diagnostics.shared.append("assessment released; every item is visible")
+            return .init(accepted: true, message: L("Menu bar policy applied"))
+        }
+
+        // MenuBarAgent resolves a status item's owner through LaunchServices
+        // and only succeeds for apps installed in /Applications. Anywhere
+        // else (~/Applications, Downloads, a build folder) the owner is nil,
+        // so the assertion would hide OPEN BAR's own control together with
+        // everything else. Leave the menu bar untouched in that case.
+        guard Self.isInstalledInApplicationsFolder else {
+            assessment.stop()
+            Diagnostics.shared.append(
+                "assessment skipped; app is outside /Applications: \(Bundle.main.bundlePath)"
+            )
+            return .init(accepted: false, message: L("Move OPEN BAR to the Applications folder to hide items"))
+        }
+
+        // The assertion hides every status item whose owner is not listed.
+        // Start from every running app so items that have not been scanned
+        // yet stay visible, then remove only the apps the user hid.
+        var allowedBundles = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
+        allowedBundles.formUnion(bundleVisibility.filter(\.value).map(\.key))
+        allowedBundles.subtract(hiddenBundles)
+        allowedBundles.insert(Bundle.main.bundleIdentifier ?? "com.woniuniuniu.OpenBar")
+
+        return await withCheckedContinuation { continuation in
+            assessment.apply(
+                allowedSystemItems: allowedSystemItems,
+                allowedBundleIdentifiers: allowedBundles
+            ) { result in
+                Task { @MainActor in
+                    switch result {
+                    case .applied:
+                        Diagnostics.shared.append(
+                            "assessment applied; hidden=\(hiddenBundles.sorted()); system=\(allowedSystemItems.sorted())"
+                        )
+                        self.onAssessmentApplied()
+                        continuation.resume(returning: .init(accepted: true, message: L("Menu bar policy applied")))
+                    case .unavailable:
+                        Diagnostics.shared.append("assessment unavailable; layout unchanged")
+                        continuation.resume(returning: .init(accepted: false, message: L("Menu bar control is unavailable on this system")))
+                    case .failed(let message):
+                        Diagnostics.shared.append("assessment failed; \(message)")
+                        continuation.resume(returning: .init(accepted: false, message: message))
+                    }
+                }
+            }
+        }
     }
 
     func stop() { assessment.stop() }
+
+    static var isInstalledInApplicationsFolder: Bool {
+        Bundle.main.bundleURL.resolvingSymlinksInPath().path.hasPrefix("/Applications/")
+    }
 
     private func shouldShow(_ section: ItemSection, expanded: Bool) -> Bool {
         switch section {
