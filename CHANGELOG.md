@@ -1,3 +1,9 @@
+# 2.0.0 - 2026-09-26
+
+- New bear icon, shown larger and sharper at the top of the sidebar.
+- Big on/off switch, sections that match your menu bar, and a working Quick Bar.
+- Works on macOS 27.
+
 # 1.1.8 - 2026-09-26
 
 - New app icon.

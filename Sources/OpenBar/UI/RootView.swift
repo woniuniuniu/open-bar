@@ -139,12 +139,16 @@ private struct Sidebar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: 9) {
+                // The icon's body fills 824 of its 1024 canvas; show just the
+                // body, clipped to the same continuous corner.
                 Image(nsImage: NSApplication.shared.applicationIconImage)
                     .resizable()
                     .interpolation(.high)
-                    .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    .frame(width: 44 * 1024 / 824, height: 44 * 1024 / 824)
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 44 * 0.225, style: .continuous))
+                    .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(L("Open Bar Brand"))
                         .font(.system(size: 22, weight: .bold))
@@ -154,6 +158,7 @@ private struct Sidebar: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(OpenBarTheme.muted)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 Spacer()
                 IconCommandButton(systemName: "sparkles", help: L("AI One-click Placement")) {
