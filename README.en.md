@@ -70,14 +70,16 @@ Choose your language and appearance, then decide whether to launch at login. Clo
 
 ## Download and get started
 
-**For Apple silicon Macs running macOS 14 or later.** The current download does not include an Intel build.
+**Apple silicon (M1 or later) Macs only, macOS 14 or later. Intel Macs are not supported.**
 
-1. Visit the [latest release](https://github.com/woniuniuniu/open-bar/releases/latest) and download `OPEN-BAR-version.zip`.
-2. Unzip it, move **OPEN BAR.app** to the Applications folder (`/Applications`), and open it. On macOS 27, OPEN BAR can hide menu bar items only when it runs from there; from any other location it offers to move itself.
-3. When prompted, allow OPEN BAR under **System Settings → Privacy & Security → Accessibility** so it can identify and manage menu bar items.
-4. Return to OPEN BAR and start arranging.
+1. Download the `.dmg` from the [latest release](https://github.com/woniuniuniu/open-bar/releases/latest).
+2. Open it and drag **OPEN BAR** into Applications.
+3. Open OPEN BAR and allow it under **System Settings → Privacy & Security → Accessibility**.
+4. Start arranging.
 
-**The current download is not Apple notarized and may be blocked by macOS on first launch.** This is a limitation of the current distribution. Developers can also [build from source](docs/DEVELOPMENT.md).
+> Keep it in the Applications folder. Elsewhere, macOS 27 won't let it hide icons.
+>
+> If macOS blocks the first launch, that's because the app isn't notarized yet.
 
 ## A few useful answers
 

@@ -70,14 +70,16 @@
 
 ## 下载与开始使用
 
-**适用于 M 系列芯片的 Mac，macOS 14 或更新版本。** 当前下载包不包含 Intel 版本。
+**仅支持 M 系列芯片的 Mac（M1 及更新），macOS 14 或更新。不支持 Intel 芯片。**
 
-1. 打开 [最新版本下载页](https://github.com/woniuniuniu/open-bar/releases/latest)，下载 `OPEN-BAR-版本号.zip`。
-2. 解压，把 **OPEN BAR.app** 放进“应用程序”文件夹（`/Applications`），然后打开。在 macOS 27 上，若栏只有从这里运行才能隐藏菜单栏图标；放在其他位置时，若栏会提示一键移过去。
-3. 按提示前往 **系统设置 → 隐私与安全性 → 辅助功能**，允许 OPEN BAR 识别和管理菜单栏项目。
-4. 回到若栏，开始整理。
+1. 在 [下载页](https://github.com/woniuniuniu/open-bar/releases/latest) 下载 `.dmg` 文件。
+2. 打开它，把 **OPEN BAR** 拖进“应用程序”文件夹。
+3. 打开若栏，按提示在 **系统设置 → 隐私与安全性 → 辅助功能** 里允许它。
+4. 开始整理菜单栏。
 
-**当前安装包尚未经过 Apple 公证，首次打开可能被 macOS 拦截。** 这是当前发布版本的限制；有开发经验的用户也可以选择[从源码构建](docs/DEVELOPMENT.md)。
+> 一定要放在“应用程序”文件夹里，否则在 macOS 27 上无法隐藏图标。
+>
+> 首次打开如果被 macOS 拦截，是因为安装包还没经过 Apple 公证。
 
 ## 你可能想知道
 
