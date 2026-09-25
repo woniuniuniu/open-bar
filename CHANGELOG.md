@@ -1,3 +1,7 @@
+# 1.1.8 - 2026-09-26
+
+- New app icon.
+
 # 1.1.7 - 2026-09-26
 
 - New: a big power switch in the sidebar. On: icons are tucked away. Off: every icon shows.
