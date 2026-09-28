@@ -15,6 +15,8 @@ struct LiveMenuBarItem: Identifiable, Equatable {
     let frame: CGRect
     let isProtected: Bool
     let actualSection: ItemSection?
+    /// Present but kept off screen by macOS 27 (see AccessibilityMenuExtra).
+    var isParked = false
 
     var knownItem: KnownItem {
         KnownItem(

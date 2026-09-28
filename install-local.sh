@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="${0:A:h}"
-ARCHIVE="$ROOT/build/OPEN-BAR-2.0.0.zip"
+ARCHIVE="$ROOT/build/OPEN-BAR-2.0.1.zip"
 # macOS 27's MenuBarAgent only attributes status items to apps in
 # /Applications; installing elsewhere makes hiding swallow OPEN BAR's own control.
 INSTALL_ROOT="${OPEN_BAR_INSTALL_DIR:-/Applications}"

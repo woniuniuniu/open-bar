@@ -11,6 +11,9 @@ struct AccessibilityMenuExtra {
     let title: String
     let detail: String
     let frame: CGRect
+    /// macOS 27 keeps a status item that has been hidden since it was created
+    /// in an off-screen slot. It exists, but is not in the menu bar.
+    let isParked: Bool
 }
 
 enum AccessibilityInventory {
@@ -28,8 +31,11 @@ enum AccessibilityInventory {
     }
 
     @MainActor
-    static func menuExtras() async -> [AccessibilityMenuExtra] {
-        let applications = NSWorkspace.shared.runningApplications.map {
+    /// Every app's menu extras, or only one process's when `pid` is given.
+    static func menuExtras(pid: pid_t? = nil) async -> [AccessibilityMenuExtra] {
+        let applications = NSWorkspace.shared.runningApplications
+            .filter { pid == nil || $0.processIdentifier == pid }
+            .map {
             ScanApp(bundleIdentifier: $0.bundleIdentifier, processIdentifier: $0.processIdentifier,
                     localizedName: $0.localizedName, isProhibited: $0.activationPolicy == .prohibited)
         }
@@ -89,9 +95,9 @@ enum AccessibilityInventory {
                     guard let position = point(element, kAXPositionAttribute as CFString),
                           let size = size(element, kAXSizeAttribute as CFString),
                           size.width > 0,
-                          size.height > 0,
-                          isMenuBarPosition(position, height: size.height, frames: screenFrames)
+                          size.height > 0
                     else { continue }
+                    let isParked = !isMenuBarPosition(position, height: size.height, frames: screenFrames)
 
                     let descendants = children(of: element)
                     let identifier = firstNonEmpty(
@@ -116,7 +122,8 @@ enum AccessibilityInventory {
                         identifier: identifier,
                         title: title,
                         detail: detail,
-                        frame: CGRect(origin: position, size: size)
+                        frame: CGRect(origin: position, size: size),
+                        isParked: isParked
                     ))
             }
         }
@@ -195,9 +202,11 @@ enum AccessibilityInventory {
     private static func removeMenuBarAgentDuplicates(
         _ extras: [AccessibilityMenuExtra]
     ) -> [AccessibilityMenuExtra] {
-        let directFrames = extras.filter { $0.bundleIdentifier != "com.apple.MenuBarAgent" }.map(\.frame)
+        let directFrames = extras
+            .filter { $0.bundleIdentifier != "com.apple.MenuBarAgent" && !$0.isParked }
+            .map(\.frame)
         return extras.filter { extra in
-            guard extra.bundleIdentifier == "com.apple.MenuBarAgent" else { return true }
+            guard extra.bundleIdentifier == "com.apple.MenuBarAgent", !extra.isParked else { return true }
             return !directFrames.contains {
                 abs($0.midX - extra.frame.midX) <= 2 && abs($0.midY - extra.frame.midY) <= 2
             }

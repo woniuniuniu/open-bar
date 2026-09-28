@@ -233,3 +233,4 @@
 "Turn Off OPEN BAR" = "关闭若栏";
 "Turn On OPEN BAR" = "开启若栏";
 "%d items in your menu bar" = "菜单栏上现有 %d 项";
+"Couldn't open this item's menu" = "无法打开这个图标的菜单";

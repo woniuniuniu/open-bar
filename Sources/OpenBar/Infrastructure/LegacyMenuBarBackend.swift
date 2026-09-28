@@ -29,7 +29,7 @@ final class LegacyMenuBarBackend: MenuBarBackend {
 
     func scan() async -> [LiveMenuBarItem] {
         let windows = WindowInventory.statusWindows(excluding: excludedWindowIDs)
-        var extras = await AccessibilityInventory.menuExtras()
+        var extras = await AccessibilityInventory.menuExtras().filter { !$0.isParked }
         let previousByWindow = Dictionary(
             previousItems.map { ($0.windowID, $0) },
             uniquingKeysWith: { current, _ in current }

@@ -22,6 +22,9 @@ final class MenuBarAgentBackend: MenuBarBackend {
     let excludedWindowIDs: Set<CGWindowID> = []
 
     private let assessment = AssessmentVisibilityController()
+    /// Hidden apps shown for a moment so one of their items can be opened
+    /// from the Quick Bar.
+    var temporarilyVisibleBundles: Set<String> = []
     private let onAssessmentApplied: () -> Void
 
     init(onAssessmentApplied: @escaping () -> Void = {}) {
@@ -39,9 +42,15 @@ final class MenuBarAgentBackend: MenuBarBackend {
         // inventory is the reliable source for the current item set; the app
         // intentionally follows that order and leaves native horizontal
         // ordering to macOS.
+        // Items in the menu bar keep their left-to-right order; parked items
+        // have no real position, so they follow in a stable order.
         let result = await AccessibilityInventory.menuExtras()
             .compactMap(makeItem)
-            .sorted { $0.frame.minX < $1.frame.minX }
+            .sorted { lhs, rhs in
+                if lhs.isParked != rhs.isParked { return !lhs.isParked }
+                if lhs.isParked { return lhs.displayName.localizedStandardCompare(rhs.displayName) == .orderedAscending }
+                return lhs.frame.minX < rhs.frame.minX
+            }
 
         var seen = Set<String>()
         return result
@@ -107,6 +116,7 @@ final class MenuBarAgentBackend: MenuBarBackend {
         }
 
         let hiddenBundles = Set(bundleVisibility.filter { !$0.value }.map(\.key))
+            .subtracting(temporarilyVisibleBundles)
         guard !hiddenBundles.isEmpty || allowedSystemItems != Set(0...8) else {
             assessment.stop()
             onAssessmentApplied()
@@ -133,6 +143,7 @@ final class MenuBarAgentBackend: MenuBarBackend {
         var allowedBundles = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
         allowedBundles.formUnion(bundleVisibility.filter(\.value).map(\.key))
         allowedBundles.subtract(hiddenBundles)
+        allowedBundles.formUnion(temporarilyVisibleBundles)
         allowedBundles.insert(Bundle.main.bundleIdentifier ?? "com.woniuniuniu.OpenBar")
 
         return await withCheckedContinuation { continuation in
@@ -162,8 +173,22 @@ final class MenuBarAgentBackend: MenuBarBackend {
 
     func stop() { assessment.stop() }
 
+    /// The current items of one process, for following an item it owns.
+    func items(pid: pid_t) async -> [LiveMenuBarItem] {
+        await AccessibilityInventory.menuExtras(pid: pid).compactMap(makeItem)
+    }
+
     static var isInstalledInApplicationsFolder: Bool {
         Bundle.main.bundleURL.resolvingSymlinksInPath().path.hasPrefix("/Applications/")
+    }
+
+    /// Whether MenuBarAgent can tell which app owns this process's status
+    /// items. It can't for apps outside /Applications (and the system), so
+    /// those are hidden by any assertion, whatever the allow list says.
+    static func canAttribute(pid: pid_t) -> Bool {
+        guard let path = NSRunningApplication(processIdentifier: pid)?.bundleURL?
+            .resolvingSymlinksInPath().path else { return true }
+        return path.hasPrefix("/Applications/") || path.hasPrefix("/System/")
     }
 
     private func shouldShow(_ section: ItemSection, expanded: Bool) -> Bool {
@@ -200,7 +225,8 @@ final class MenuBarAgentBackend: MenuBarBackend {
                 symbolName: MenuBarItemPresentation.symbol(bundle: semantic, identifier: canonicalModule),
                 frame: extra.frame,
                 isProtected: false,
-                actualSection: nil
+                actualSection: nil,
+                isParked: extra.isParked
             )
         }
 
@@ -231,7 +257,8 @@ final class MenuBarAgentBackend: MenuBarBackend {
             ),
             frame: extra.frame,
             isProtected: false,
-            actualSection: nil
+            actualSection: nil,
+            isParked: extra.isParked
         )
     }
 

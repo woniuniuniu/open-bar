@@ -39,6 +39,8 @@ final class AppModel: ObservableObject {
     private var timer: Timer?
     private var permissionTimer: Timer?
     private var observers: [NSObjectProtocol] = []
+    private var runningApplicationsObservation: NSKeyValueObservation?
+    private var runningApplicationsGeneration = 0
     private var openWindow: (() -> Void)?
     private var driftTracker = DriftTracker()
     private var lastReportedScanCount: Int?
@@ -248,6 +250,8 @@ final class AppModel: ObservableObject {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
         observers.removeAll()
+        runningApplicationsObservation?.invalidate()
+        runningApplicationsObservation = nil
     }
 
     func refresh(reconcile: Bool = false, reason: ApplyReason = .guardian) {
@@ -265,7 +269,9 @@ final class AppModel: ObservableObject {
             if !hasAccessibilityPermission { schedulePermissionChecks() }
         }
         let knownIDsBeforeScan = Set(store.document.knownItems.keys)
-        var scanned = await backend.scan().filter { !$0.isProtected }
+        var scanned = await backend.scan().filter {
+            !$0.isProtected && (!$0.isParked || isHiddenByOpenBar($0))
+        }
         // The app's own control is a normal native status item, but the
         // inventory intentionally excludes the managing process to avoid
         // feeding it back into visibility policy. Add this one UI record only
@@ -302,10 +308,13 @@ final class AppModel: ObservableObject {
         }
         statusBar?.update(expanded: isExpanded)
 
-        guard reconcile, canManage, store.document.preferences.guardianEnabled else { return }
+        guard reconcile, canManage else { return }
         if capabilities.kind == .menuBarAgent {
+            // The macOS 27 allow list names the running apps, so it has to
+            // follow every launch and quit, whether or not the guardian is on.
             apply(reason: reason)
         } else {
+            guard store.document.preferences.guardianEnabled else { return }
             let observations = scanned.compactMap { item -> ReconciliationObservation? in
                 guard let actual = item.actualSection else { return nil }
                 let policy = store.policy(for: item.id)
@@ -329,14 +338,92 @@ final class AppModel: ObservableObject {
             return
         }
         statusBar?.hideQuickBar()
+        // On macOS 27 a hidden item has no place in the menu bar, so its menu
+        // would open in a corner of the screen. Show its app while the menu
+        // is in use, then tuck it away again.
+        if let agent = backend as? MenuBarAgentBackend, isEnabled,
+           store.section(for: live.id) != .shown,
+           !live.semanticIdentifier.hasPrefix("module:"),
+           MenuBarAgentBackend.canAttribute(pid: live.hostPID) {
+            revealAndActivate(live, agent: agent)
+            return
+        }
         if !AccessibilityInventory.activate(live) {
-            lastOperationMessage = L("Unable to open this menu; try expanding hidden items")
+            lastOperationMessage = L("Couldn't open this item's menu")
+        }
+    }
+
+    private func revealAndActivate(_ item: LiveMenuBarItem, agent: MenuBarAgentBackend) {
+        let bundle = item.bundleIdentifier
+        agent.temporarilyVisibleBundles.insert(bundle)
+        apply(reason: .expansion)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            var target: LiveMenuBarItem?
+            for _ in 0..<25 {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                target = await agent.items(pid: item.hostPID).first { $0.id == item.id && !$0.isParked }
+                if target != nil { break }
+            }
+            if let target, AccessibilityInventory.activate(target) {
+                await Self.waitWhileInUse(pid: item.hostPID)
+            } else {
+                self.lastOperationMessage = L("Couldn't open this item's menu")
+            }
+            agent.temporarilyVisibleBundles.remove(bundle)
+            self.apply(reason: .expansion)
+        }
+    }
+
+    /// Returns once a revealed item is no longer in use: its menu or popover
+    /// has closed and its app is not frontmost. Gives up after a minute.
+    private static func waitWhileInUse(pid: pid_t) async {
+        let start = Date()
+        var lastInUse = start
+        while Date().timeIntervalSince(start) < 60 {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            if isInUse(pid: pid) {
+                lastInUse = Date()
+            } else if Date().timeIntervalSince(lastInUse) > 1.2, Date().timeIntervalSince(start) > 1.5 {
+                return
+            }
+        }
+    }
+
+    private static func isInUse(pid: pid_t) -> Bool {
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
+        // Menus and popovers hang from the top of a screen (CG coordinates).
+        let mainTop = NSScreen.screens.first?.frame.maxY ?? 0
+        let screenTops = NSScreen.screens.map { mainTop - $0.frame.maxY }
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+            as? [[String: Any]] ?? []
+        return windows.contains { info in
+            guard (info[kCGWindowOwnerPID as String] as? pid_t) == pid,
+                  let layer = info[kCGWindowLayer as String] as? Int, layer > 0,
+                  let bounds = info[kCGWindowBounds as String] as? [String: CGFloat],
+                  let top = bounds["Y"]
+            else { return false }
+            return screenTops.contains { abs(top - $0) < 80 }
         }
     }
 
     func rescan() {
         guard !isScanning else { return }
-        refresh(reconcile: false)
+        lastGuardianSignature = nil
+        Task { @MainActor in
+            await performRefresh(reconcile: false)
+            if capabilities.kind == .menuBarAgent, canManage { apply(reason: .guardian) }
+        }
+    }
+
+    /// macOS 27 parks a status item off screen when it is hidden from the
+    /// moment it is created. A parked item still belongs in the inventory
+    /// when OPEN BAR is the one hiding it; otherwise the app itself (or the
+    /// system's menu bar setting) has hidden it and it is not in the menu bar.
+    private func isHiddenByOpenBar(_ item: LiveMenuBarItem) -> Bool {
+        guard isEnabled else { return false }
+        if store.section(for: item.id) != .shown { return true }
+        return !MenuBarAgentBackend.canAttribute(pid: item.hostPID)
     }
 
     func applyCurrentLayout() {
@@ -583,7 +670,6 @@ final class AppModel: ObservableObject {
         if case .guardian = reason {
             let signature = guardianSignature()
             guard signature != lastGuardianSignature else { return }
-
         }
         applyGeneration += 1
         let generation = applyGeneration
@@ -657,10 +743,14 @@ final class AppModel: ObservableObject {
     }
 
     private func configureObservers() {
+        // NSWorkspace posts no launch notification for LSUIElement apps,
+        // which is what most menu bar apps are. The runningApplications list
+        // covers every app, so follow that instead.
+        runningApplicationsObservation = NSWorkspace.shared.observe(\.runningApplications) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.runningApplicationsDidChange() }
+        }
         let center = NSWorkspace.shared.notificationCenter
         for name in [
-            NSWorkspace.didLaunchApplicationNotification,
-            NSWorkspace.didTerminateApplicationNotification,
             NSWorkspace.didWakeNotification,
             NSWorkspace.activeSpaceDidChangeNotification,
         ] {
@@ -678,6 +768,19 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Rescan shortly after apps launch or quit, then again while a new app
+    /// is still creating its status item. A burst of changes is coalesced.
+    private func runningApplicationsDidChange() {
+        runningApplicationsGeneration += 1
+        let generation = runningApplicationsGeneration
+        for delay in [0.4, 1.5, 4.0, 10.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, generation == self.runningApplicationsGeneration else { return }
+                self.refresh(reconcile: true)
+            }
+        }
+    }
+
     private func addActivity(_ level: ActivityEntry.Level, _ message: String) {
         activity.insert(.init(level: level, message: message), at: 0)
         activity = Array(activity.prefix(80))
@@ -691,8 +794,15 @@ final class AppModel: ObservableObject {
         let live = liveItems.filter { !$0.isProtected }.map { item in
             "\(item.id)=\(store.section(for: item.id).rawValue)"
         }.sorted()
-        return [isExpanded ? "expanded" : "collapsed", known.joined(separator: ","), live.joined(separator: ",")]
-            .joined(separator: "|")
+        // The allow list is built from the running apps, so a launch or quit
+        // must count as a change even before its status item is scanned.
+        let running = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier)).sorted()
+        return [
+            isExpanded ? "expanded" : "collapsed",
+            known.joined(separator: ","),
+            live.joined(separator: ","),
+            running.joined(separator: ","),
+        ].joined(separator: "|")
     }
 
     private func isGuardianReason(_ reason: ApplyReason) -> Bool {

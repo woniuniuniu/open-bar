@@ -1,3 +1,9 @@
+# 2.0.1 - 2026-09-29
+
+- Fixed: apps opened after OPEN BAR, or after a restart, now show up right away. No need to turn OPEN BAR off and on.
+- Fixed: new menu bar apps appear in the menu bar and in Shown as soon as they start.
+- Fixed: hidden items opened from the Quick Bar now show their menu under the icon.
+
 # 2.0.0 - 2026-09-26
 
 - New bear icon, shown larger and sharper at the top of the sidebar.
